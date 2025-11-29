@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Black-Scholes Payoff Calculator</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem; color: #1d1d1f; }
+      h1 { margin-bottom: 0.25rem; }
+      form { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: 800px; }
+      label { font-weight: 600; }
+      input, textarea { padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+      textarea { grid-column: span 2; min-height: 80px; }
+      .actions { grid-column: span 2; }
+      button { padding: 0.6rem 1.2rem; font-size: 1rem; border: none; border-radius: 4px; background: #0066cc; color: white; cursor: pointer; }
+      button:hover { background: #005bb5; }
+      .result { margin-top: 1.5rem; font-size: 1.1rem; }
+      .hint { color: #555; font-size: 0.9rem; }
+      .error { color: #b00020; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <h1>Black-Scholes Option Calculator</h1>
+    <p class="hint">Monte Carlo estimation under risk-neutral measure. Provide your own payoff using <code>ST</code> (terminal price) and optional <code>K</code>, <code>r</code>, <code>sigma</code>, <code>T</code>.</p>
+    <form id="bs-form">
+      <div>
+        <label for="spot">Spot (S<sub>0</sub>)</label>
+        <input type="number" step="any" id="spot" name="spot" value="100" required />
+      </div>
+      <div>
+        <label for="strike">Strike (K)</label>
+        <input type="number" step="any" id="strike" name="strike" value="100" required />
+      </div>
+      <div>
+        <label for="rate">Risk-free rate (r)</label>
+        <input type="number" step="any" id="rate" name="rate" value="0.05" required />
+      </div>
+      <div>
+        <label for="volatility">Volatility (σ)</label>
+        <input type="number" step="any" id="volatility" name="volatility" value="0.2" required />
+      </div>
+      <div>
+        <label for="maturity">Maturity (T, in years)</label>
+        <input type="number" step="any" id="maturity" name="maturity" value="1" required />
+      </div>
+      <div>
+        <label for="simulations">Simulations</label>
+        <input type="number" id="simulations" name="simulations" value="20000" min="100" />
+      </div>
+      <textarea id="payoff_expression" name="payoff_expression">max(ST - K, 0)</textarea>
+      <div class="hint" style="grid-column: span 2;">
+        Examples: <code>max(ST - K, 0)</code> (call), <code>max(K - ST, 0)</code> (put), <code>max(abs(ST - K) - 10, 0)</code> (strangle with band). Functions: abs, max, min, exp, log, sqrt, sin, cos, tan.
+      </div>
+      <div class="actions">
+        <button type="submit">Estimate Price</button>
+      </div>
+    </form>
+
+    <div id="result" class="result"></div>
+
+    <script>
+      const form = document.getElementById('bs-form');
+      const result = document.getElementById('result');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        result.textContent = 'Running simulation...';
+
+        const formData = new FormData(form);
+        try {
+          const response = await fetch('/price', { method: 'POST', body: formData });
+          const data = await response.json();
+          if (!response.ok) {
+            result.innerHTML = `<span class="error">Error: ${data.error}</span>`;
+            return;
+          }
+          result.textContent = `Estimated price: ${data.price.toFixed(4)}`;
+        } catch (err) {
+          result.innerHTML = `<span class="error">Unexpected error: ${err}</span>`;
+        }
+      });
+    </script>
+  </body>
+</html>
